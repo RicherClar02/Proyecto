@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Login Tienda",
-  description: "Página de inicio de sesión de ejemplo en Next.js",
+  description: "Página de inicio de sesión",
 };
 
 export default function RootLayout({ children }) {

@@ -26,6 +26,10 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+* {
+  color: #000000;
+}
+
 /* Estilos personalizados adicionales */
 .btn {
   @apply px-4 py-2 rounded font-semibold transition-colors;

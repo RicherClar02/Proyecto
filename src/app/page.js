@@ -84,10 +84,7 @@ export default function Home() {
           </div>
           
           <div className="text-center text-sm text-gray-500">
-            <p>Usuarios de prueba:</p>
-            <p>Admin: admin/123</p>
-            <p>Empleado: empleado/123</p>
-            <p>Cliente: cliente/123</p>
+            <p>🏠 Tu tienda de siempre, ahora más cerca de ti.</p>
           </div>
         </form>
       </div>

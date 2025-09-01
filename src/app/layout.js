@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Sistema de Gestión de Tienda",
+  title: "Tienda",
   description: "Sistema completo de gestión para tienda",
 };
 

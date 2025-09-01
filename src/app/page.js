@@ -1,66 +1,96 @@
-// app/page.js
-
-"use client"; // Marca este componente como "cliente" para usar hooks de React
-
+"use client";
 import { useState } from "react";
-import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleLogin = (e) => {
     e.preventDefault();
+    
+    // Simulación de base de datos de usuarios
+    const users = [
+      { username: "admin", password: "123", role: "admin" },
+      { username: "empleado", password: "123", role: "empleado" },
+      { username: "cliente", password: "123", role: "cliente" }
+    ];
 
-    const validUsername = "admin";
-    const validPassword = "123";
+    const user = users.find(u => u.username === username && u.password === password);
 
-    if (username === validUsername && password === validPassword) {
-      alert("¡Inicio de sesión exitoso!");
-      setError(""); // Limpia el mensaje de error
+    if (user) {
+      // Guardar en localStorage (en producción usaría un método más seguro)
+      localStorage.setItem("user", JSON.stringify(user));
+      
+      // Redirigir según el rol
+      if (user.role === "admin" || user.role === "empleado") {
+        router.push("/dashboard");
+      } else {
+        router.push("/tienda");
+      }
     } else {
       setError("Usuario o contraseña incorrectos.");
     }
   };
 
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        
-        <div className="flex flex-col gap-4 p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-sm">
-          <h2 className="text-xl font-bold text-center mb-4">Iniciar Sesión</h2>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input
-              type="text"
-              placeholder="Usuario"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black dark:text-white dark:bg-gray-700"
-              required
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black dark:text-white dark:bg-gray-700"
-              required
-            />
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sistema de Gestión de Tienda
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Inicia sesión con tu cuenta
+          </p>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <input
+                type="text"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
+
+          <div>
             <button
               type="submit"
-              className="mt-4 bg-blue-600 text-white p-3 rounded-md font-semibold hover:bg-blue-700 transition-colors"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Entrar
+              Iniciar sesión
             </button>
-          </form>
-        </div>
-      </main>
-      
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        {/* Aquí puedes agregar un pie de página si es específico de esta página */}
-      </footer>
+          </div>
+          
+          <div className="text-center text-sm text-gray-500">
+            <p>Usuarios de prueba:</p>
+            <p>Admin: admin/123</p>
+            <p>Empleado: empleado/123</p>
+            <p>Cliente: cliente/123</p>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

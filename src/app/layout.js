@@ -6,18 +6,21 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Login Tienda",
-  description: "Página de inicio de sesión",
+  title: "Sistema de Gestión de Tienda",
+  description: "Sistema completo de gestión para tienda",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
+     <html lang="es">
       <body className={inter.className}>
-        {/* Aquí puedes agregar un encabezado, una barra de navegación, etc. */}
-        {children}
-        {/* Aquí puedes agregar un pie de página */}
+        <div className="min-h-screen bg-gray-100">
+          {children}
+        </div>
       </body>
     </html>
   );
 }
+
+
+

@@ -1,33 +1,51 @@
-import { NextResponse } from 'next/server';
+import { query } from '@/lib/db';
 
 export async function POST(request) {
   try {
     const { email, password } = await request.json();
     
-    // Simulación de consulta a la base de datos
-    // En producción, conectarías con PostgreSQL aquí
-    const users = [
-      { id: 1, nombre: 'Administrador', email: 'admin@tienda.com', password: '123', rol: 'admin' },
-      { id: 2, nombre: 'Empleado 1', email: 'empleado1@tienda.com', password: '123', rol: 'empleado' }
-    ];
+    console.log('Intento de login:', email);
     
-    const user = users.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-      return NextResponse.json({ 
+    if (!email || !password) {
+      return Response.json({
+        success: false,
+        message: 'Email y contraseña son requeridos'
+      }, { status: 400 });
+    }
+
+    // Consultar la base de datos
+    const result = await query(
+      'SELECT id, nombre, email, rol FROM usuarios WHERE email = $1 AND password = $2',
+      [email, password]
+    );
+
+    console.log('Resultado de la query:', result.rows);
+
+    if (result.rows.length > 0) {
+      const user = result.rows[0];
+      
+      return Response.json({ 
         success: true, 
-        user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol } 
+        user: { 
+          id: user.id, 
+          nombre: user.nombre, 
+          email: user.email, 
+          rol: user.rol 
+        } 
       });
     } else {
-      return NextResponse.json({ 
+      return Response.json({ 
         success: false, 
         message: 'Credenciales incorrectas' 
       }, { status: 401 });
     }
   } catch (error) {
-    return NextResponse.json({ 
+    console.error('Error en login API:', error);
+    
+    return Response.json({ 
       success: false, 
-      message: 'Error en el servidor' 
+      message: 'Error en el servidor: ' + error.message,
+      error: error.toString()
     }, { status: 500 });
   }
 }

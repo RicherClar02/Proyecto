@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -13,6 +12,7 @@ export default function Dashboard() {
   const [newProduct, setNewProduct] = useState({ 
     nombre: "", descripcion: "", precio: "", stock: "", categoria: "" 
   });
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,45 +27,51 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      // Simular carga de datos desde la API
-      const productsResponse = await fetch('/api/products');
-      const ordersResponse = await fetch('/api/orders');
-      const salesResponse = await fetch('/api/sales');
+      setLoading(true);
+      const [productsRes, ordersRes, salesRes] = await Promise.all([
+        fetch('/api/products'),
+         fetch('/api/pedidos'),
+        fetch('/api/sales/total')
+      ]);
+
+      if (productsRes.ok) setProducts(await productsRes.json());
+      if (ordersRes.ok) setOrders(await ordersRes.json());
       
-      const productsData = await productsResponse.json();
-      const ordersData = await ordersResponse.json();
-      const salesData = await salesResponse.json();
-      
-      setProducts(productsData);
-      setOrders(ordersData);
-      setSalesData(salesData);
+      if (salesRes.ok) {
+        const sales = await salesRes.json();
+        setSalesData({
+          total: Number(sales.total) || 0,
+          count: Number(sales.count) || 0
+        });
+      }
     } catch (error) {
       console.error("Error loading data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/");
-  };
+  
 
   const handleAddProduct = async () => {
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newProduct),
+      const method = editingProduct ? 'PUT' : 'POST';
+      const url = editingProduct ? '/api/products' : '/api/products';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingProduct ? { ...newProduct, id: editingProduct.id } : newProduct)
       });
       
       if (response.ok) {
         setShowProductForm(false);
+        setEditingProduct(null);
         setNewProduct({ nombre: "", descripcion: "", precio: "", stock: "", categoria: "" });
-        loadData(); // Recargar datos
+        loadData();
       }
     } catch (error) {
-      console.error("Error adding product:", error);
+      console.error("Error saving product:", error);
     }
   };
 
@@ -73,23 +79,20 @@ export default function Dashboard() {
     setEditingProduct(product);
     setNewProduct({
       nombre: product.nombre,
-      descripcion: product.descripcion,
+      descripcion: product.descripcion || "",
       precio: product.precio,
       stock: product.stock,
-      categoria: product.categoria
+      categoria: product.categoria || ""
     });
     setShowProductForm(true);
   };
 
   const handleDeleteProduct = async (id) => {
+    if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+    
     try {
-      const response = await fetch(`/api/products/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        loadData(); // Recargar datos
-      }
+      const response = await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
+      if (response.ok) loadData();
     } catch (error) {
       console.error("Error deleting product:", error);
     }
@@ -99,15 +102,10 @@ export default function Dashboard() {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ estado: 'completado' }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estado: 'completado' })
       });
-      
-      if (response.ok) {
-        loadData(); // Recargar datos
-      }
+      if (response.ok) loadData();
     } catch (error) {
       console.error("Error completing order:", error);
     }
@@ -123,7 +121,7 @@ export default function Dashboard() {
           <div className="flex items-center space-x-4">
             <span className="text-gray-700">Hola, {user.nombre}</span>
             <button
-              onClick={handleLogout}
+              onClick={() => { localStorage.removeItem("user"); router.push("/"); }}
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
             >
               Cerrar sesión
@@ -133,15 +131,17 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Resumen de ventas */}
+        {/* Resumen de ventas - CORREGIDO */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900">Ventas Totales</h3>
-            <p className="text-3xl font-bold text-indigo-600">${salesData.total.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-indigo-600">
+              ${typeof salesData.total === 'number' ? salesData.total.toFixed(2) : '0.00'}
+            </p>
           </div>
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900">Pedidos Totales</h3>
-            <p className="text-3xl font-bold text-indigo-600">{salesData.count}</p>
+            <p className="text-3xl font-bold text-indigo-600">{salesData.count || 0}</p>
           </div>
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900">Productos</h3>
@@ -170,7 +170,7 @@ export default function Dashboard() {
                 <div className="space-y-3">
                   <input
                     type="text"
-                    placeholder="Nombre"
+                    placeholder="Nombre *"
                     value={newProduct.nombre}
                     onChange={(e) => setNewProduct({...newProduct, nombre: e.target.value})}
                     className="w-full p-2 border rounded"
@@ -184,7 +184,7 @@ export default function Dashboard() {
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="Precio"
+                    placeholder="Precio *"
                     value={newProduct.precio}
                     onChange={(e) => setNewProduct({...newProduct, precio: e.target.value})}
                     className="w-full p-2 border rounded"
@@ -213,55 +213,61 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {products.map((product) => (
-                    <tr key={product.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium">{product.nombre}</div>
-                        <div className="text-sm text-gray-500">{product.categoria}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">${product.precio}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{product.stock}</td>
-                      <td className="px-6 py-4 whitespace-nowrap space-x-2">
-                        <button
-                          onClick={() => handleEditProduct(product)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(product.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          Eliminar
-                        </button>
-                      </td>
+            {loading ? (
+              <p>Cargando productos...</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {products.map((product) => (
+                      <tr key={product.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium">{product.nombre}</div>
+                          <div className="text-sm text-gray-500">{product.categoria}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">${product.precio}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{product.stock}</td>
+                        <td className="px-6 py-4 whitespace-nowrap space-x-2">
+                          <button
+                            onClick={() => handleEditProduct(product)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(product.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Gestión de Pedidos */}
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-6">Pedidos Recientes</h2>
             
-            <div className="space-y-4">
-              {orders.filter(order => order.estado === "pendiente").length === 0 ? (
-                <p className="text-gray-500">No hay pedidos pendientes</p>
-              ) : (
-                orders.filter(order => order.estado === "pendiente").map((order) => (
+            {loading ? (
+              <p>Cargando pedidos...</p>
+            ) : orders.filter(order => order.estado === "pendiente").length === 0 ? (
+              <p className="text-gray-500">No hay pedidos pendientes</p>
+            ) : (
+              <div className="space-y-4">
+                {orders.filter(order => order.estado === "pendiente").map((order) => (
                   <div key={order.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start">
                       <div>
@@ -278,9 +284,9 @@ export default function Dashboard() {
                       </button>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

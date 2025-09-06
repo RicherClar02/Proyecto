@@ -132,9 +132,6 @@ export default function Home() {
           </div>
           
           <div className="text-center text-sm text-gray-500 mt-6">
-            <p>Usuarios de prueba:</p>
-            <p>Admin: admin@tienda.com / 123</p>
-            <p>Empleado: empleado1@tienda.com / 123</p>
           </div>
         </form>
       </div>

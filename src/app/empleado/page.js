@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import SearchBar from "@/components/SearchBar";
 
 export default function Empleado() {
   const [user, setUser] = useState(null);
